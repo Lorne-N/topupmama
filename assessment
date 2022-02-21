@@ -1,0 +1,78 @@
+# 1.Importing data into R 
+k_customers <- read.csv("KenyaCustomers.csv")
+k_orders <- read.csv("KenyaOrders.csv")
+k_delivery <- read.csv("KenyaDeliveries.csv")
+n_customers <- read.csv("NigeriaCustomers.csv")
+n_orders <- read.csv("NigeriaOrders.csv")
+n_delivery <- read.csv("NigeriaDeliveries.csv")
+
+# 2.General exploration and merging
+# number of rows and columns for each dataset
+dim(k_customers)
+dim(k_orders)
+dim(k_delivery)
+dim(n_customers)
+dim(n_orders)
+dim(n_delivery)
+
+# column names 
+names(k_customers)
+names(k_orders)
+names(k_delivery) 
+names(n_customers)
+names(n_orders)
+names(n_delivery)
+
+# merge strategy:
+# There is a common column, Customer.ID, between customers dataset and 
+# orders dataset (for both nigeria and kenya datasets)
+# This customer.ID is however not present in the delivery datasets but
+# the orders datasets share Order_ID with delivery dataset
+
+# merging 
+# kenyan dataset 
+# first merge orders with deliveries - merge by order id 
+head(k_orders$Order.ID)
+head(k_delivery$Order_ID)
+# make the two columns same format - remove "YR-" and ",0" from delivery order id 
+id = sub(pattern = '^YR-(\\d+),0', replacement = '\\1', k_delivery$Order_ID); id 
+# convert these string ids into numbers 
+order_id = as.integer(id); order_id
+# add a new column, Order.ID (so it is same as the column name for orders)
+# to k_delivery
+k_delivery$Order.ID = order_id
+# merge kenya orders and delivery by order id (full join)
+k_orders_delivery <- merge(k_orders, k_delivery, by = 'Order.ID', all = TRUE)
+dim(k_orders_delivery)
+dim(k_orders); dim(k_delivery)
+head(k_orders_delivery)
+# merge orders and delivery with customers 
+kenya <- merge(k_customers, k_orders_delivery, by = 'Customer.ID', all = TRUE)
+dim(kenya)
+head(kenya)
+
+# nigerian dataset 
+head(n_orders$Order.ID)
+head(n_delivery$Order_ID)
+order_id = as.integer(sub(pattern = '^YR-(\\d+),0', replacement = '\\1', n_delivery$Order_ID)); order_id
+n_delivery$Order.ID = order_id
+n_orders_delivery <- merge(n_orders, n_delivery, by = 'Order.ID', all = TRUE)
+nigeria <- merge(n_customers, n_orders_delivery, by = 'Customer.ID', all = TRUE)
+dim(nigeria)
+head(nigeria)
+
+# merge kenyan and nigerian
+# first create new column, country, for each. For easier identification
+nigeria$country <- "Nigeria"
+kenya$country <- 'Kenya'
+dim(kenya); dim(nigeria)  # 92 columns for kenya, 87 for nigeria 
+# merge rows by common column names 
+columns <- intersect(names(kenya), names(nigeria)); columns # common columns 
+# final dataset 
+df <- rbind(kenya[, columns], nigeria[, columns])
+dim(df)
+head(df)
+
+# export merged dataset 
+# this will create a new file, mama.csv, in your working directory
+write.csv(df, file = 'mama.csv', row.names = F)
